@@ -88,8 +88,10 @@ impl<'w, 's, T: Component> SystemParamFetch<'w, 's> for RefResMutState<T> {
             unsafe { SystemParamFetch::get_param(&mut state.res, system_meta, world, change_tick) };
         let x = res.into_inner();
         RefResMut {
-            value: unsafe { x.read_exclusive_from(world.id()) }
-                .expect("StaticRef<T> is only added to the correct World"),
+            value: unsafe { x.read_exclusive_from(world.id()) }.expect(
+                "StaticRef<T> should only be present in the correct `World` with the correct\
+mutability and during its lifetime",
+            ),
         }
     }
 }
