@@ -1,144 +1,59 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
-use std::ops::{Deref, DerefMut};
+use std::marker::PhantomData;
 
-use bevy_ecs::{
-    component::Component,
-    prelude::{Res, ResMut},
-    system::{SystemParam, SystemParamFetch, SystemParamState},
-};
-use static_ref::StaticRef;
+use bevy_ecs::{component::Component, world::World};
+pub(crate) use static_ref::StaticRef;
 
 mod static_ref;
 
-pub struct RefRes<'w, T: Component> {
-    value: &'w T,
+mod params;
+pub use params::{RefRes, RefResMut};
+
+pub fn temporarily_store_shared_ref<T: Component, R>(
+    world: &mut World,
+    reference: &T,
+    then: impl FnOnce(&mut World) -> R,
+) -> R {
+    let guard = RemoveStaticRefOnDrop {
+        world,
+        t: PhantomData::<T>,
+    };
+    guard
+        .world
+        .insert_resource(StaticRef::new_shared(guard.world.id(), reference));
+    then(guard.world)
 }
 
-impl<'w, T: Component> RefRes<'w, T> {
-    pub fn into_inner(&self) -> &'w T {
-        self.value
-    }
+pub fn temporarily_store_exclusive_ref<T: Component, R>(
+    world: &mut World,
+    reference: &mut T,
+    then: impl FnOnce(&mut World) -> R,
+) -> R {
+    let guard = RemoveStaticRefOnDrop {
+        world,
+        t: PhantomData::<T>,
+    };
+    guard
+        .world
+        .insert_resource(StaticRef::new_exclusive(guard.world.id(), reference));
+    then(guard.world)
 }
 
-impl<'w, T: Component> Deref for RefRes<'w, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        self.value
-    }
+struct RemoveStaticRefOnDrop<'a, T: Component> {
+    world: &'a mut World,
+    t: PhantomData<T>,
 }
 
-pub struct RefResMut<'w, T: Component> {
-    value: &'w mut T,
-}
-
-impl<'w, T: Component> RefResMut<'w, T> {
-    pub fn into_inner(self) -> &'w mut T {
-        self.value
-    }
-}
-
-impl<'w, T: Component> Deref for RefResMut<'w, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl<'w, T: Component> DerefMut for RefResMut<'w, T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
-    }
-}
-
-impl<'w, T: Component> SystemParam for RefResMut<'w, T> {
-    type Fetch = RefResMutState<T>;
-}
-
-pub struct RefResMutState<T: 'static + Send + Sync> {
-    res: <ResMut<'static, StaticRef<T>> as SystemParam>::Fetch,
-}
-
-unsafe impl<'w, T: Component> SystemParamState for RefResMutState<T> {
-    type Config = ();
-
-    fn init(
-        world: &mut bevy_ecs::prelude::World,
-        system_meta: &mut bevy_ecs::system::SystemMeta,
-        config: Self::Config,
-    ) -> Self {
-        Self {
-            res: SystemParamState::init(world, system_meta, config),
-        }
-    }
-
-    fn default_config() -> Self::Config {
-        ()
-    }
-}
-
-impl<'w, 's, T: Component> SystemParamFetch<'w, 's> for RefResMutState<T> {
-    type Item = RefResMut<'w, T>;
-
-    unsafe fn get_param(
-        state: &'s mut Self,
-        system_meta: &bevy_ecs::system::SystemMeta,
-        world: &'w bevy_ecs::prelude::World,
-        change_tick: u32,
-    ) -> Self::Item {
-        let res =
-            unsafe { SystemParamFetch::get_param(&mut state.res, system_meta, world, change_tick) };
-        let x = res.into_inner();
-        RefResMut {
-            value: unsafe { x.read_exclusive_from(world.id()) }
-                .expect("StaticRef<T> is only added to the correct World"),
-        }
-    }
-}
-
-impl<'w, T: Component> SystemParam for RefRes<'w, T> {
-    type Fetch = RefResState<T>;
-}
-
-pub struct RefResState<T: 'static + Send + Sync> {
-    res: <Res<'static, StaticRef<T>> as SystemParam>::Fetch,
-}
-
-unsafe impl<'w, T: Component> SystemParamState for RefResState<T> {
-    type Config = ();
-
-    fn init(
-        world: &mut bevy_ecs::prelude::World,
-        system_meta: &mut bevy_ecs::system::SystemMeta,
-        config: Self::Config,
-    ) -> Self {
-        Self {
-            res: SystemParamState::init(world, system_meta, config),
-        }
-    }
-
-    fn default_config() -> Self::Config {
-        ()
-    }
-}
-
-impl<'w, 's, T: Component> SystemParamFetch<'w, 's> for RefResState<T> {
-    type Item = RefRes<'w, T>;
-
-    unsafe fn get_param(
-        state: &'s mut Self,
-        system_meta: &bevy_ecs::system::SystemMeta,
-        world: &'w bevy_ecs::prelude::World,
-        change_tick: u32,
-    ) -> Self::Item {
-        let res =
-            unsafe { SystemParamFetch::get_param(&mut state.res, system_meta, world, change_tick) };
-        let x = res.into_inner();
-        RefRes {
-            value: unsafe { x.read_shared_from(world.id()) }
-                .expect("StaticRef<T> is only added to the correct World"),
-        }
+impl<'a, T: Component> Drop for RemoveStaticRefOnDrop<'a, T> {
+    fn drop(&mut self) {
+        self.world
+            .remove_resource::<StaticRef<T>>()
+            .unwrap_or_else(|| {
+                panic!(
+                    "Could not remove lifetime erased `&[mut] {}`",
+                    std::any::type_name::<T>()
+                )
+            });
     }
 }
