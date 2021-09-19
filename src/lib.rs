@@ -65,6 +65,10 @@ impl<'a, T: Component> Drop for RemoveStaticRefOnDrop<'a, T> {
                 "Could not remove lifetime erased `&[mut] {}` from `World`",
                 std::any::type_name::<T>()
             );
+            // We only need to do this store in the 'else' case, because we know that the
+            // StaticRef (which we would be disabling) is dropped at the end of this function
+            // TODO: Use the Arc's reference count to check this condition - note that `Arc` currently
+            // doesn't expose `Arc::is_unique`, so this is currently impossible afaik
             self.disabler.store(true, Ordering::Relaxed);
             None
         });
