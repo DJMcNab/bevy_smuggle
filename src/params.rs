@@ -136,7 +136,7 @@ impl<'w, 's, T: Component> SystemParamFetch<'w, 's> for RefResState<T> {
         let x = res.into_inner();
         RefRes {
             value: unsafe { x.read_shared_from(world.id()) }
-                .expect("StaticRef<T> is only added to the correct World"),
+                .expect("StaticRef<T> is only present in the correct `World` during its lifetime"),
         }
     }
 }

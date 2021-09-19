@@ -65,7 +65,6 @@ impl<T: 'static> StaticRef<T> {
         // Note that having &self means that only read_shared_from may be called whilst the reference lives
         Some(unsafe { self.ptr.as_ref() })
     }
-
     pub(crate) unsafe fn read_exclusive_from(&mut self, world: WorldId) -> Option<&mut T> {
         self.check_invariants(world)?;
         if self.mutability != Mutability::Exclusive {
