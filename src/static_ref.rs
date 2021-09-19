@@ -46,7 +46,7 @@ impl<T: 'static> StaticRef<T> {
             Some(unsafe { self.ptr.as_ref() })
         }
     }
-    pub(crate) fn read_exclusive_from(&mut self, world: WorldId) -> Option<&mut T> {
+    pub(crate) unsafe fn read_exclusive_from(&mut self, world: WorldId) -> Option<&mut T> {
         if self.world != world || self.mutability != Mutability::Exclusive {
             None
         } else {
