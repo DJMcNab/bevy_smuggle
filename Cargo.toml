@@ -10,3 +10,6 @@ license = "MIT OR Apache-2.0"
 # We depend on a 'non-standard' `bevy_ecs` because we need https://github.com/bevyengine/bevy/pull/2827 for safety
 bevy_ecs = { git = "https://github.com/DJMcNab/bevy", rev = "4e8464907a790160bcf4e73ade04b2c097d41a66" }
 # Can't use default-features = false - see https://github.com/bevyengine/bevy/pull/2842
+
+[dev-dependencies]
+bevy_app = { git = "https://github.com/DJMcNab/bevy", rev = "4e8464907a790160bcf4e73ade04b2c097d41a66" }
