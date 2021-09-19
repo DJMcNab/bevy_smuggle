@@ -22,7 +22,7 @@ unsafe impl<T: 'static + Send + Sync> Send for StaticRef<T> {}
 unsafe impl<T: 'static + Send + Sync> Sync for StaticRef<T> {}
 
 impl<T: 'static> StaticRef<T> {
-    pub(crate) fn new_shared(world: WorldId, reference: &T) -> Self {
+    pub(crate) unsafe fn new_shared(world: WorldId, reference: &T) -> Self {
         Self {
             ptr: reference.into(),
             world,
@@ -30,7 +30,7 @@ impl<T: 'static> StaticRef<T> {
         }
     }
 
-    pub(crate) fn new_exclusive(world: WorldId, reference: &mut T) -> Self {
+    pub(crate) unsafe fn new_exclusive(world: WorldId, reference: &mut T) -> Self {
         Self {
             ptr: reference.into(),
             world,

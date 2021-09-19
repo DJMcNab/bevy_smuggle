@@ -21,7 +21,7 @@ pub fn temporarily_store_shared_ref<T: Component, R>(
     };
     guard
         .world
-        .insert_resource(StaticRef::new_shared(guard.world.id(), reference));
+        .insert_resource(unsafe { StaticRef::new_shared(guard.world.id(), reference) });
     then(guard.world)
 }
 
@@ -36,7 +36,7 @@ pub fn temporarily_store_exclusive_ref<T: Component, R>(
     };
     guard
         .world
-        .insert_resource(StaticRef::new_exclusive(guard.world.id(), reference));
+        .insert_resource(unsafe { StaticRef::new_exclusive(guard.world.id(), reference) });
     then(guard.world)
 }
 
