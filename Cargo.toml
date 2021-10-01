@@ -7,9 +7,8 @@ license = "MIT OR Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# We depend on a 'non-standard' `bevy_ecs` because we need https://github.com/bevyengine/bevy/pull/2827 for safety
-bevy_ecs = { git = "https://github.com/DJMcNab/bevy", rev = "4e8464907a790160bcf4e73ade04b2c097d41a66" }
+bevy_ecs = { git = "https://github.com/bevyengine/bevy", rev = "5ba2b9adcf5e686273cf024acf1ad8ddfb4f8e18" }
 # Can't use default-features = false - see https://github.com/bevyengine/bevy/pull/2842
 
 [dev-dependencies]
-bevy_app = { git = "https://github.com/DJMcNab/bevy", rev = "4e8464907a790160bcf4e73ade04b2c097d41a66" }
+bevy_app = { git = "https://github.com/bevyengine/bevy", rev = "5ba2b9adcf5e686273cf024acf1ad8ddfb4f8e18" }
